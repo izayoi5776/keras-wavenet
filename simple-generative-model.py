@@ -5,24 +5,22 @@ import numpy as np
 from keras.callbacks import Callback
 from scipy.io.wavfile import read, write
 from keras.models import Model, Sequential
-from keras.layers import Convolution1D, AtrousConvolution1D, Flatten, Dense, \
-    Input, Lambda, merge, Activation
+from keras.layers import Convolution1D, Conv1D, Flatten, Dense, \
+    Input, Lambda, multiply, add, Activation
 
 
 def wavenetBlock(n_atrous_filters, atrous_filter_size, atrous_rate):
     def f(input_):
         residual = input_
-        tanh_out = AtrousConvolution1D(n_atrous_filters, atrous_filter_size,
-                                       atrous_rate=atrous_rate,
-                                       border_mode='same',
+        tanh_out = Conv1D(n_atrous_filters, atrous_filter_size,
+                                       padding='same',
                                        activation='tanh')(input_)
-        sigmoid_out = AtrousConvolution1D(n_atrous_filters, atrous_filter_size,
-                                          atrous_rate=atrous_rate,
-                                          border_mode='same',
+        sigmoid_out = Conv1D(n_atrous_filters, atrous_filter_size,
+                                          padding='same',
                                           activation='sigmoid')(input_)
-        merged = merge([tanh_out, sigmoid_out], mode='mul')
-        skip_out = Convolution1D(1, 1, activation='relu', border_mode='same')(merged)
-        out = merge([skip_out, residual], mode='sum')
+        merged = multiply([tanh_out, sigmoid_out])
+        skip_out = Convolution1D(1, 1, activation='relu', padding='same')(merged)
+        out = add([skip_out, residual])
         return out, skip_out
     return f
 
@@ -34,7 +32,7 @@ def get_basic_generative_model(input_size):
     for i in range(20):
         A, B = wavenetBlock(64, 2, 2**((i+2)%9))(A)
         skip_connections.append(B)
-    net = merge(skip_connections, mode='sum')
+    net = add(skip_connections)
     net = Activation('relu')(net)
     net = Convolution1D(1, 1, activation='relu')(net)
     net = Convolution1D(1, 1)(net)
@@ -118,7 +116,7 @@ class SaveAudioCallback(Callback):
 
 
 if __name__ == '__main__':
-    n_epochs = 2000
+    n_epochs = 2
     frame_size = 2048
     frame_shift = 128
     sr_training, training_audio = get_audio('train.wav')
@@ -130,9 +128,9 @@ if __name__ == '__main__':
         frame_shift))
     n_validation_examples = int((len(valid_audio)-frame_size-1) / float(
         frame_shift))
-    model = get_basic_generative_model(frame_size)
     print 'Total training examples:', n_training_examples
     print 'Total validation examples:', n_validation_examples
+    model = get_basic_generative_model(frame_size)
     audio_context = valid_audio[:frame_size]
     save_audio_clbk = SaveAudioCallback(100, sr_training, audio_context)
     validation_data_gen = frame_generator(sr_valid, valid_audio, frame_size, frame_shift)
