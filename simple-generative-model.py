@@ -1,13 +1,15 @@
 import os
 import sys
 import time
+import glob
+
 import numpy as np
 from keras.callbacks import Callback
 from scipy.io.wavfile import read, write
 from keras.models import Model, Sequential
 from keras.layers import Convolution1D, Conv1D, Flatten, Dense, \
     Input, Lambda, multiply, add, Activation
-
+from keras.models import load_model
 
 def wavenetBlock(n_atrous_filters, atrous_filter_size, atrous_rate):
     def f(input_):
@@ -118,6 +120,15 @@ def mkdir_if_needed(dir):
   if not os.path.isdir(dir):
       os.mkdir(dir)
 
+def get_saved_model(dir):
+  files = glob.glob(os.path.join(dir, '*.h5'))
+  if files:
+    model = max(files, key=os.path.getmtime)
+    print("load model from " + model + "...")
+    return load_model(model)
+  else:
+    return None
+
 if __name__ == '__main__':
     n_epochs = 2
     frame_size = 2048
@@ -139,15 +150,20 @@ if __name__ == '__main__':
     mkdir_if_needed(output_dir)
     mkdir_if_needed(models_dir)
 
-    model = get_basic_generative_model(frame_size)
+    model = get_saved_model(models_dir)
+    if not model:
+      model = get_basic_generative_model(frame_size)
     audio_context = valid_audio[:frame_size]
     save_audio_clbk = SaveAudioCallback(100, sr_training, audio_context, output_dir)
     validation_data_gen = frame_generator(sr_valid, valid_audio, frame_size, frame_shift)
     training_data_gen = frame_generator(sr_training, training_audio, frame_size, frame_shift)
     model.fit_generator(training_data_gen, samples_per_epoch=100, nb_epoch=n_epochs, validation_data=validation_data_gen,nb_val_samples=500, verbose=1, callbacks=[save_audio_clbk])
-    print 'Saving model...'
+
     str_timestamp = str(int(time.time()))
-    model.save(models_dir+'/model_'+str_timestamp+'_'+str(n_epochs)+'.h5')
+    outfilepath = models_dir+'/model_'+str_timestamp+'_'+str(n_epochs)+'.h5'
+    print 'Saving model to:' + outfilepath
+    model.save(outfilepath)
+
     print 'Generating audio...'
     new_audio = get_audio_from_model(model, sr_training, 2, audio_context)
     outfilepath = output_dir+'/generated_'+str_timestamp+'.wav'
