@@ -101,7 +101,7 @@ def get_audio_from_model(model, sr, duration, seed_audio):
 
 
 class SaveAudioCallback(Callback):
-    def __init__(self, ckpt_freq, sr, seed_audio):
+    def __init__(self, ckpt_freq, sr, seed_audio, output_dir):
         super(SaveAudioCallback, self).__init__()
         self.ckpt_freq = ckpt_freq
         self.sr = sr
@@ -110,10 +110,13 @@ class SaveAudioCallback(Callback):
     def on_epoch_end(self, epoch, logs={}):
         if (epoch+1)%self.ckpt_freq==0:
             ts = str(int(time.time()))
-            filepath = os.path.join('output/', 'ckpt_'+ts+'.wav')
+            filepath = os.path.join(output_dir, '/ckpt_'+ts+'.wav')
             audio = get_audio_from_model(self.model, self.sr, 0.5, self.seed_audio)
             write(filepath, self.sr, audio)
 
+def mkdir_if_needed(dir):
+  if not os.path.isdir(dir):
+      os.mkdir(dir)
 
 if __name__ == '__main__':
     n_epochs = 2
@@ -130,18 +133,24 @@ if __name__ == '__main__':
         frame_shift))
     print 'Total training examples:', n_training_examples
     print 'Total validation examples:', n_validation_examples
+
+    output_dir = 'output'
+    models_dir = 'models'
+    mkdir_if_needed(output_dir)
+    mkdir_if_needed(models_dir)
+
     model = get_basic_generative_model(frame_size)
     audio_context = valid_audio[:frame_size]
-    save_audio_clbk = SaveAudioCallback(100, sr_training, audio_context)
+    save_audio_clbk = SaveAudioCallback(100, sr_training, audio_context, output_dir)
     validation_data_gen = frame_generator(sr_valid, valid_audio, frame_size, frame_shift)
     training_data_gen = frame_generator(sr_training, training_audio, frame_size, frame_shift)
-    model.fit_generator(training_data_gen, samples_per_epoch=3000, nb_epoch=n_epochs, validation_data=validation_data_gen,nb_val_samples=500, verbose=1, callbacks=[save_audio_clbk])
+    model.fit_generator(training_data_gen, samples_per_epoch=100, nb_epoch=n_epochs, validation_data=validation_data_gen,nb_val_samples=500, verbose=1, callbacks=[save_audio_clbk])
     print 'Saving model...'
     str_timestamp = str(int(time.time()))
-    model.save('models/model_'+str_timestamp+'_'+str(n_epochs)+'.h5')
+    model.save(models_dir+'/model_'+str_timestamp+'_'+str(n_epochs)+'.h5')
     print 'Generating audio...'
     new_audio = get_audio_from_model(model, sr_training, 2, audio_context)
-    outfilepath = 'output/generated_'+str_timestamp+'.wav'
+    outfilepath = output_dir+'/generated_'+str_timestamp+'.wav'
     print 'Writing generated audio to:', outfilepath
     write(outfilepath, sr_training, new_audio)
     print '\nDone!'
