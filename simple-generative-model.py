@@ -79,7 +79,7 @@ def frame_generator(sr, audio, frame_size, frame_shift, minibatch_size=20):
 
 
 def get_audio_from_model(model, sr, duration, seed_audio):
-    print 'Generating audio...'
+    print('Generating audio...')
     new_audio = np.zeros((sr * duration))
     curr_sample_idx = 0
     while curr_sample_idx < new_audio.shape[0]:
@@ -98,7 +98,7 @@ def get_audio_from_model(model, sr, duration, seed_audio):
         sys.stdout.write('Percent complete: ' + pc_str + '\r')
         sys.stdout.flush()
         curr_sample_idx += 1
-    print 'Audio generated.'
+    print('Audio generated.')
     return new_audio.astype(np.int16)
 
 
@@ -142,8 +142,8 @@ if __name__ == '__main__':
         frame_shift))
     n_validation_examples = int((len(valid_audio)-frame_size-1) / float(
         frame_shift))
-    print 'Total training examples:', n_training_examples
-    print 'Total validation examples:', n_validation_examples
+    print('Total training examples:', n_training_examples)
+    print('Total validation examples:', n_validation_examples)
 
     output_dir = 'output'
     models_dir = 'models'
@@ -161,12 +161,12 @@ if __name__ == '__main__':
 
     str_timestamp = str(int(time.time()))
     outfilepath = models_dir+'/model_'+str_timestamp+'_'+str(n_epochs)+'.h5'
-    print 'Saving model to:' + outfilepath
+    print('Saving model to:' + outfilepath)
     model.save(outfilepath)
 
-    print 'Generating audio...'
+    print('Generating audio...')
     new_audio = get_audio_from_model(model, sr_training, 2, audio_context)
     outfilepath = output_dir+'/generated_'+str_timestamp+'.wav'
-    print 'Writing generated audio to:', outfilepath
+    print('Writing generated audio to:', outfilepath)
     write(outfilepath, sr_training, new_audio)
-    print '\nDone!'
+    print('\nDone!')
