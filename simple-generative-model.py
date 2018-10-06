@@ -157,14 +157,19 @@ if __name__ == '__main__':
     save_audio_clbk = SaveAudioCallback(100, sr_training, audio_context, output_dir)
     validation_data_gen = frame_generator(sr_valid, valid_audio, frame_size, frame_shift)
     training_data_gen = frame_generator(sr_training, training_audio, frame_size, frame_shift)
-    model.fit_generator(training_data_gen, samples_per_epoch=100, nb_epoch=n_epochs, validation_data=validation_data_gen,nb_val_samples=500, verbose=1, callbacks=[save_audio_clbk])
+    model.fit_generator(training_data_gen, 
+      steps_per_epoch=150, 
+      epochs=n_epochs, 
+      validation_data=validation_data_gen,
+      validation_steps=25, 
+      verbose=1, 
+      callbacks=[save_audio_clbk])
 
     str_timestamp = str(int(time.time()))
     outfilepath = models_dir+'/model_'+str_timestamp+'_'+str(n_epochs)+'.h5'
     print('Saving model to:' + outfilepath)
     model.save(outfilepath)
 
-    print('Generating audio...')
     new_audio = get_audio_from_model(model, sr_training, 2, audio_context)
     outfilepath = output_dir+'/generated_'+str_timestamp+'.wav'
     print('Writing generated audio to:', outfilepath)
