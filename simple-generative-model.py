@@ -2,6 +2,9 @@ import os
 import sys
 import time
 import glob
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 import numpy as np
 from keras.callbacks import Callback
@@ -130,8 +133,33 @@ def get_saved_model(dir):
   else:
     return None
 
+def generate_wav(model, sr, audio_context, output_dir, str_timestamp):
+  new_audio = get_audio_from_model(model, sr, 2, audio_context)
+  outfilepath = output_dir+'/generated_'+str_timestamp+'.wav'
+  print('Writing generated audio to:', outfilepath)
+  write(outfilepath, sr, new_audio)
+
+# plot results
+def save_hist_png(hist, output_dir):
+  loss = hist.history['loss']
+  val_loss = hist.history['val_loss']
+  acc = hist.history['acc']
+  val_acc = hist.history['val_acc']
+
+  epochs = len(loss)
+  plt.plot(range(epochs), loss, marker='.', label='loss')
+  plt.plot(range(epochs), val_loss, marker='.', label='val_loss')
+  plt.plot(range(epochs), acc, marker='.', label='acc')
+  plt.plot(range(epochs), val_acc, marker='.', label='val_acc')
+  plt.legend(loc='best')
+  plt.grid()
+  plt.xlabel('epoch')
+  plt.ylabel('loss/acc')
+  #plt.show()
+  plt.savefig(output_dir + "/history_" + str_timestamp + '.png')
+
 if __name__ == '__main__':
-    n_epochs = 2
+    n_epochs = 3
     frame_size = 2048
     frame_shift = 128
     sr_training, training_audio = get_audio('train.wav')
@@ -158,7 +186,7 @@ if __name__ == '__main__':
     save_audio_clbk = SaveAudioCallback(100, sr_training, audio_context, output_dir)
     validation_data_gen = frame_generator(sr_valid, valid_audio, frame_size, frame_shift)
     training_data_gen = frame_generator(sr_training, training_audio, frame_size, frame_shift)
-    model.fit_generator(training_data_gen, 
+    hist = model.fit_generator(training_data_gen, 
       steps_per_epoch=150, 
       epochs=n_epochs, 
       validation_data=validation_data_gen,
@@ -171,8 +199,7 @@ if __name__ == '__main__':
     print('Saving model to:' + outfilepath)
     model.save(outfilepath)
 
-    new_audio = get_audio_from_model(model, sr_training, 2, audio_context)
-    outfilepath = output_dir+'/generated_'+str_timestamp+'.wav'
-    print('Writing generated audio to:', outfilepath)
-    write(outfilepath, sr_training, new_audio)
+    generate_wav(model, sr_training, audio_context, output_dir, str_timestamp)
+    save_hist_png(hist, output_dir)
     print('\nDone!')
+
