@@ -80,7 +80,7 @@ def frame_generator(sr, audio, frame_size, frame_shift, minibatch_size=20):
 
 def get_audio_from_model(model, sr, duration, seed_audio):
     print('Generating audio...')
-    new_audio = np.zeros((sr * duration))
+    new_audio = np.zeros(int(sr * duration))
     curr_sample_idx = 0
     while curr_sample_idx < new_audio.shape[0]:
         distribution = np.array(model.predict(seed_audio.reshape(1,
@@ -108,11 +108,12 @@ class SaveAudioCallback(Callback):
         self.ckpt_freq = ckpt_freq
         self.sr = sr
         self.seed_audio = seed_audio
+        self.output_dir = output_dir
 
     def on_epoch_end(self, epoch, logs={}):
         if (epoch+1)%self.ckpt_freq==0:
             ts = str(int(time.time()))
-            filepath = os.path.join(output_dir, '/ckpt_'+ts+'.wav')
+            filepath = self.output_dir + '/ckpt_' + ts + '.wav'
             audio = get_audio_from_model(self.model, self.sr, 0.5, self.seed_audio)
             write(filepath, self.sr, audio)
 
