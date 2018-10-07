@@ -5,7 +5,6 @@ import glob
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
 import numpy as np
 from keras.callbacks import Callback
 from scipy.io.wavfile import read, write
@@ -13,6 +12,7 @@ from keras.models import Model, Sequential
 from keras.layers import Convolution1D, Conv1D, Flatten, Dense, \
     Input, Lambda, multiply, add, Activation
 from keras.models import load_model
+from keras.callbacks import TensorBoard
 
 def wavenetBlock(n_atrous_filters, atrous_filter_size, atrous_rate):
     def f(input_):
@@ -46,7 +46,7 @@ def get_basic_generative_model(input_size):
     model = Model(input=input_, output=net)
     model.compile(loss='categorical_crossentropy', optimizer='sgd',
                   metrics=['accuracy'])
-    model.summary()
+    print(model.summary())
     return model
 
 
@@ -176,14 +176,17 @@ if __name__ == '__main__':
 
     output_dir = 'output'
     models_dir = 'models'
+    logs_dir   = 'models'
     mkdir_if_needed(output_dir)
     mkdir_if_needed(models_dir)
+    mkdir_if_needed(logs_dir)
 
     model = get_saved_model(models_dir)
     if not model:
       model = get_basic_generative_model(frame_size)
     audio_context = valid_audio[:frame_size]
     save_audio_clbk = SaveAudioCallback(100, sr_training, audio_context, output_dir)
+    tensorboard_clbk = TensorBoard(log_dir="./logs", histogram_freq=0)
     validation_data_gen = frame_generator(sr_valid, valid_audio, frame_size, frame_shift)
     training_data_gen = frame_generator(sr_training, training_audio, frame_size, frame_shift)
     hist = model.fit_generator(training_data_gen, 
@@ -192,14 +195,14 @@ if __name__ == '__main__':
       validation_data=validation_data_gen,
       validation_steps=25, 
       verbose=1, 
-      callbacks=[save_audio_clbk])
+      callbacks=[save_audio_clbk, tensorboard_clbk])
 
     str_timestamp = str(int(time.time()))
     outfilepath = models_dir+'/model_'+str_timestamp+'_'+str(n_epochs)+'.h5'
     print('Saving model to:' + outfilepath)
     model.save(outfilepath)
 
-    generate_wav(model, sr_training, audio_context, output_dir, str_timestamp)
-    save_hist_png(hist, output_dir)
+    #generate_wav(model, sr_training, audio_context, output_dir, str_timestamp)
+    #save_hist_png(hist, output_dir)
     print('\nDone!')
 

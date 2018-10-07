@@ -11,6 +11,13 @@ cvlc -vvv --sout-keep --sout-all --sout "#gather:transcode{acodec=s16l,channels=
 cvlc -vvv --sout-keep --sout-all --sout "#gather:transcode{acodec=s16l,channels=1,samplerate=8000}:std{access=file,mux=wav,dst=train.wav}" `find LibriSpeech/dev-clean/ -name "*.flac"` vlc://quit
 ```
 
+## monitor
+run following command, and connect http://your-server:6006 for monitor
+
+```
+tensorboard --logdir=./logs
+```
+
 ## Todo
 - [x] The basic generative model  
 - [ ] Conditioning logic (speaker)  
