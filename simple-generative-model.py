@@ -139,27 +139,8 @@ def generate_wav(model, sr, audio_context, output_dir, str_timestamp):
   print('Writing generated audio to:', outfilepath)
   write(outfilepath, sr, new_audio)
 
-# plot results
-def save_hist_png(hist, output_dir):
-  loss = hist.history['loss']
-  val_loss = hist.history['val_loss']
-  acc = hist.history['acc']
-  val_acc = hist.history['val_acc']
-
-  epochs = len(loss)
-  plt.plot(range(epochs), loss, marker='.', label='loss')
-  plt.plot(range(epochs), val_loss, marker='.', label='val_loss')
-  plt.plot(range(epochs), acc, marker='.', label='acc')
-  plt.plot(range(epochs), val_acc, marker='.', label='val_acc')
-  plt.legend(loc='best')
-  plt.grid()
-  plt.xlabel('epoch')
-  plt.ylabel('loss/acc')
-  #plt.show()
-  plt.savefig(output_dir + "/history_" + str_timestamp + '.png')
-
 if __name__ == '__main__':
-    n_epochs = 3
+    n_epochs = 30
     frame_size = 2048
     frame_shift = 128
     sr_training, training_audio = get_audio('train.wav')
@@ -186,11 +167,11 @@ if __name__ == '__main__':
       model = get_basic_generative_model(frame_size)
     audio_context = valid_audio[:frame_size]
     save_audio_clbk = SaveAudioCallback(100, sr_training, audio_context, output_dir)
-    tensorboard_clbk = TensorBoard(log_dir="./logs", histogram_freq=0)
+    tensorboard_clbk = TensorBoard(log_dir='./logs')
     validation_data_gen = frame_generator(sr_valid, valid_audio, frame_size, frame_shift)
     training_data_gen = frame_generator(sr_training, training_audio, frame_size, frame_shift)
     hist = model.fit_generator(training_data_gen, 
-      steps_per_epoch=150, 
+      steps_per_epoch=15, 
       epochs=n_epochs, 
       validation_data=validation_data_gen,
       validation_steps=25, 
@@ -203,6 +184,4 @@ if __name__ == '__main__':
     model.save(outfilepath)
 
     #generate_wav(model, sr_training, audio_context, output_dir, str_timestamp)
-    #save_hist_png(hist, output_dir)
     print('\nDone!')
-
