@@ -87,7 +87,7 @@ def frame_generator(sr, audio, frame_size, frame_shift, minibatch_size=20):
             X.append(frame.reshape(frame_size, 1))
             y.append((np.eye(256)[target_val]))
             if len(X) == minibatch_size:
-                #print(" i=" + str(i) + "/" + str(end))
+                print(" i=" + str(i) + "/" + str(end))
                 yield np.array(X), np.array(y)
                 X = []
                 y = []
@@ -139,9 +139,11 @@ def mkdir_if_needed(dir):
 def get_saved_model(dir):
   files = glob.glob(os.path.join(dir, '*.h5'))
   if files:
-    model = max(files, key=os.path.getmtime)
-    print("load model from " + model + "...")
-    return load_model(model)
+    model_name = max(files, key=os.path.getmtime)
+    print("load model from " + model_name + "...")
+    model = load_model(model_name)
+    model.summary()
+    return model
   else:
     return None
 
@@ -174,7 +176,8 @@ if __name__ == '__main__':
     mkdir_if_needed(models_dir)
     mkdir_if_needed(logs_dir)
 
-    model = get_saved_model(models_dir)
+    model = None
+    #model = get_saved_model(models_dir)
     if not model:
       model = get_basic_generative_model(frame_size)
     audio_context = valid_audio[:frame_size]
