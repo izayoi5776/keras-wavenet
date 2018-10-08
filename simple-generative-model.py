@@ -16,6 +16,13 @@ from keras.callbacks import TensorBoard
 import random
 
 def wavenetBlock(n_atrous_filters, atrous_filter_size, atrous_rate):
+    '''
+
+    :param n_atrous_filters:
+    :param atrous_filter_size:
+    :param atrous_rate:
+    :return:
+    '''
     def f(input_):
         residual = input_
         tanh_out = Conv1D(n_atrous_filters, atrous_filter_size,
@@ -25,7 +32,7 @@ def wavenetBlock(n_atrous_filters, atrous_filter_size, atrous_rate):
                                           padding='same',
                                           activation='sigmoid')(input_)
         merged = multiply([tanh_out, sigmoid_out])
-        skip_out = Convolution1D(1, 1, activation='relu', padding='same')(merged)
+        skip_out = Conv1D(1, 1, activation='relu', padding='same')(merged)
         out = add([skip_out, residual])
         return out, skip_out
     return f
@@ -40,8 +47,8 @@ def get_basic_generative_model(input_size):
         skip_connections.append(B)
     net = add(skip_connections)
     net = Activation('relu')(net)
-    net = Convolution1D(1, 1, activation='relu')(net)
-    net = Convolution1D(1, 1)(net)
+    net = Conv1D(1, 1, activation='relu')(net)
+    net = Conv1D(1, 1)(net)
     net = Flatten()(net)
     net = Dense(256, activation='softmax')(net)
     model = Model(input=input_, output=net)
@@ -82,12 +89,13 @@ def frame_generator(sr, audio, frame_size, frame_shift, minibatch_size=20):
             if i + frame_size >= audio_len:
                 break
             temp = audio[i + frame_size]
+            # u-law
             target_val = int((np.sign(temp) * (np.log(1 + 256*abs(temp)) / (
                 np.log(1+256))) + 1)/2.0 * 255)
             X.append(frame.reshape(frame_size, 1))
             y.append((np.eye(256)[target_val]))
             if len(X) == minibatch_size:
-                print(" i=" + str(i) + "/" + str(end))
+                print(" i=" + str(i) + "/" + str(end), end="" )
                 yield np.array(X), np.array(y)
                 X = []
                 y = []
@@ -186,10 +194,10 @@ if __name__ == '__main__':
     validation_data_gen = frame_generator(sr_valid, valid_audio, frame_size, frame_shift)
     training_data_gen = frame_generator(sr_training, training_audio, frame_size, frame_shift)
     hist = model.fit_generator(training_data_gen, 
-      steps_per_epoch=60, 
+      steps_per_epoch=150,
       epochs=n_epochs, 
       validation_data=validation_data_gen,
-      validation_steps=5, 
+      validation_steps=10,
       verbose=1, 
       callbacks=[save_audio_clbk, tensorboard_clbk])
 
