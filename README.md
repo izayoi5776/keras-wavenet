@@ -18,6 +18,11 @@ run following command, and connect http://your-server:6006 for monitor
 tensorboard --logdir=./logs
 ```
 
+run for diff different color
+```
+tensorboard --logdir=name1:/path/to/logs/1,name2:/path/to/logs/2
+```
+
 ## Todo
 - [x] The basic generative model  
 - [ ] Conditioning logic (speaker)  
