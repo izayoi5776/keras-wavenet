@@ -13,6 +13,7 @@ from keras.layers import Convolution1D, Conv1D, Flatten, Dense, \
     Input, Lambda, multiply, add, Activation
 from keras.models import load_model
 from keras.callbacks import TensorBoard
+import random
 
 def wavenetBlock(n_atrous_filters, atrous_filter_size, atrous_rate):
     def f(input_):
@@ -58,13 +59,23 @@ def get_audio(filename):
     audio = (audio - 0.5) * 2
     return sr, audio
 
-
 def frame_generator(sr, audio, frame_size, frame_shift, minibatch_size=20):
+    '''
+    :param sr            : sample rate
+    :param audio         : audio data
+    :param frame_size    : 2048 fixed
+    :param frame_shift   : 128 fixed
+    :param minibatch_size: 20 default
+    :return              : np.array(X), np.array(y)
+    '''
     audio_len = len(audio)
     X = []
     y = []
     while 1:
-        for i in range(0, audio_len - frame_size - 1, frame_shift):
+        #print("frame_generator: while loop sr=" + str(sr) + " frame_size=" + str(frame_size) + " frame_shift=" + str(frame_shift) + " minibatch_size=" + str(minibatch_size) )
+        end = audio_len - frame_size - 1
+        start = random.randint(0, end)
+        for i in range(start, end, frame_shift):
             frame = audio[i:i+frame_size]
             if len(frame) < frame_size:
                 break
@@ -76,6 +87,7 @@ def frame_generator(sr, audio, frame_size, frame_shift, minibatch_size=20):
             X.append(frame.reshape(frame_size, 1))
             y.append((np.eye(256)[target_val]))
             if len(X) == minibatch_size:
+                #print(" i=" + str(i) + "/" + str(end))
                 yield np.array(X), np.array(y)
                 X = []
                 y = []
@@ -171,10 +183,10 @@ if __name__ == '__main__':
     validation_data_gen = frame_generator(sr_valid, valid_audio, frame_size, frame_shift)
     training_data_gen = frame_generator(sr_training, training_audio, frame_size, frame_shift)
     hist = model.fit_generator(training_data_gen, 
-      steps_per_epoch=15, 
+      steps_per_epoch=60, 
       epochs=n_epochs, 
       validation_data=validation_data_gen,
-      validation_steps=25, 
+      validation_steps=5, 
       verbose=1, 
       callbacks=[save_audio_clbk, tensorboard_clbk])
 
